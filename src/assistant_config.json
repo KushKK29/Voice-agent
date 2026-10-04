@@ -1,0 +1,67 @@
+{
+  "name": "autopay-recovery-agent",
+  "firstMessage": "Hi, this is an AI assistant from Razorpay calling about a payment issue on your account. This call may be recorded. Could you tell me your 3-digit customer number so I can verify your account?",
+  "model": {
+    "provider": "openai",
+    "model": "gpt-4.1",
+    "systemPrompt": "You are a polite, concise payment-recovery assistant calling on behalf of Razorpay. This demo takes inbound calls, so you don't know who's calling yet. Your job for this call:\n\n1. Ask the caller for their 3-digit customer number (not the full ID, just the digits, e.g. 'zero zero three' or 'three'). Once they give you digits, build the customer_id yourself as 'cust_0XX' (e.g. digits '3' or '003' -> customer_id 'cust_003'; pad with leading zeros to make 3 digits). Then call the lookup_customer tool with that exact customer_id before saying anything else about their account.\n\n2. If lookup_customer returns found=false, tell the caller you couldn't find an account with that number, ask them to repeat just the digits, and let them try once more. If it still isn't found, apologize, call log_outcome with outcome='wrong_contact', and end the call politely. Never guess or make up account details for an ID that wasn't found.\n\n3. If lookup_customer returns found=true, use the returned name, amount, currency, and failure_reason to tell them their most recent autopay payment failed (map insufficient_funds -> 'insufficient balance', card_expired -> 'an expired card', bank_declined -> 'your bank declining the charge'). Say this is a demo detail.\n\n4. Offer two options: (a) retry the payment now, (b) send a secure link by SMS to update their payment method.\n\n5. On every subsequent tool call in this conversation (retry_payment, offer_payment_link, log_outcome), always pass the exact same customer_id you built in step 1. Never omit it, never ask the caller to reconfirm their number again once verified — you already have it.\n\n6. If they choose retry, call retry_payment. If the result is status=success, confirm the payment went through. If status=failed, apologize and offer the SMS link instead. If status=customer_not_found, treat it like step 2.\n\n7. If they choose the link, call offer_payment_link and confirm the SMS is sent.\n\n8. If they want to do neither, or ask to be called back later, respect that and call log_outcome with outcome='callback_requested'.\n\n9. NEVER ask for or accept a full card number, CVV, PIN, or OTP over the call. If the caller starts reciting one, interrupt, tell them not to share it, and continue without it.\n\n10. If the caller sounds upset or hostile, offer a human callback and end the call politely.\n\n11. Always call log_outcome exactly once at the end of the call with a one-line summary, using the customer_id you built.\n\nKeep every turn short — one or two sentences. Do not improvise financial advice."
+  },
+  "voice": {
+    "provider": "11labs",
+    "voiceId": "default-professional-voice"
+  },
+  "maxDurationSeconds": 180,
+  "endCallFunctionEnabled": true,
+  "functions": [
+    {
+      "name": "lookup_customer",
+      "description": "Looks up a customer account by customer ID to verify identity and fetch their payment details.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customer_id": {"type": "string"}
+        },
+        "required": ["customer_id"]
+      }
+    },
+    {
+      "name": "retry_payment",
+      "description": "Retries the failed autopay charge for this customer.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customer_id": {"type": "string"}
+        },
+        "required": ["customer_id"]
+      }
+    },
+    {
+      "name": "offer_payment_link",
+      "description": "Generates a mock secure link to update the customer's payment method and sends it by SMS.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customer_id": {"type": "string"}
+        },
+        "required": ["customer_id"]
+      }
+    },
+    {
+      "name": "log_outcome",
+      "description": "Logs the final outcome of this call. Call exactly once, at the end.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "customer_id": {"type": "string"},
+          "outcome": {
+            "type": "string",
+            "enum": ["payment_recovered", "link_sent", "callback_requested", "wrong_contact", "declined", "escalated_to_human"]
+          },
+          "notes": {"type": "string"}
+        },
+        "required": ["customer_id", "outcome"]
+      }
+    }
+  ],
+  "serverUrl": "{{WEBHOOK_BASE_URL}}/vapi/tool-call"
+}

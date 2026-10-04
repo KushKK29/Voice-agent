@@ -1,0 +1,12 @@
+[
+  {"customer_id": "cust_001", "name": "Asha Rao", "phone": "+91TESTNUM01", "amount": 499, "currency": "INR", "failure_reason": "insufficient_funds", "plan": "Monthly Pro", "attempts_so_far": 1, "retry_will_succeed": false},
+  {"customer_id": "cust_002", "name": "Vikram Singh", "phone": "+91TESTNUM02", "amount": 999, "currency": "INR", "failure_reason": "card_expired", "plan": "Annual Lite", "attempts_so_far": 2, "retry_will_succeed": false},
+  {"customer_id": "cust_003", "name": "Meera Iyer", "phone": "+91TESTNUM03", "amount": 299, "currency": "INR", "failure_reason": "bank_declined", "plan": "Monthly Basic", "attempts_so_far": 1, "retry_will_succeed": true},
+  {"customer_id": "cust_004", "name": "Rohan Gupta", "phone": "+91TESTNUM04", "amount": 1499, "currency": "INR", "failure_reason": "insufficient_funds", "plan": "Monthly Pro", "attempts_so_far": 1, "retry_will_succeed": true},
+  {"customer_id": "cust_005", "name": "Priya Nair", "phone": "+91TESTNUM05", "amount": 799, "currency": "INR", "failure_reason": "card_expired", "plan": "Monthly Pro", "attempts_so_far": 3, "retry_will_succeed": false},
+  {"customer_id": "cust_006", "name": "Karan Mehta", "phone": "+91TESTNUM06", "amount": 599, "currency": "INR", "failure_reason": "bank_declined", "plan": "Monthly Basic", "attempts_so_far": 1, "retry_will_succeed": true},
+  {"customer_id": "cust_007", "name": "Sneha Joshi", "phone": "+91TESTNUM07", "amount": 1999, "currency": "INR", "failure_reason": "insufficient_funds", "plan": "Annual Lite", "attempts_so_far": 2, "retry_will_succeed": false},
+  {"customer_id": "cust_008", "name": "Arjun Reddy", "phone": "+91TESTNUM08", "amount": 399, "currency": "INR", "failure_reason": "card_expired", "plan": "Monthly Basic", "attempts_so_far": 1, "retry_will_succeed": true},
+  {"customer_id": "cust_009", "name": "Divya Pillai", "phone": "+91TESTNUM09", "amount": 899, "currency": "INR", "failure_reason": "bank_declined", "plan": "Monthly Pro", "attempts_so_far": 1, "retry_will_succeed": true},
+  {"customer_id": "cust_010", "name": "Kabir Malhotra", "phone": "+91TESTNUM10", "amount": 1299, "currency": "INR", "failure_reason": "insufficient_funds", "plan": "Monthly Basic", "attempts_so_far": 2, "retry_will_succeed": false}
+]
