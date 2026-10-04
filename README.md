@@ -20,6 +20,7 @@ covers setup, how to run it, and what the two included test cases prove.
 | | |
 |---|---|
 | 📱 **Live demo number** | `+1 (415) 300-9362` |
+| ☁️ **Live webhook (deployed)** | [voice-agent-drab-seven.vercel.app](https://voice-agent-drab-seven.vercel.app) |
 | 🧪 **Test records** | 10 fictional customers, `cust_001` – `cust_010` |
 | ✅ **Proven end to end** | 2 recorded calls — one success, one failure-with-fallback |
 | 🔒 **Real data** | None. Everything is fictional or mocked. |
@@ -68,21 +69,26 @@ real money or real customer data anywhere in this project.
 
 ```
 voice-agent/
-├── README.md                 you are here
-├── PLAN.md                   architecture, design rationale, security notes, limitations
+├── README.md                     you are here
+├── PLAN.md                       architecture, design rationale, security notes, limitations
 ├── requirements.txt
-├── .env.example               every config value this project needs, documented
+├── render.yaml                   Render Blueprint (alternate deploy target, see below)
+├── .env.example                   every config value this project needs, documented
 ├── src/
-│   ├── customer_records.json  10 fictional customers used for the demo
-│   ├── assistant_config.json  the Vapi assistant definition (prompt, tools, voice)
-│   ├── mock_backend.py        FastAPI service simulating the payment system
-│   ├── webhook_handler.py     FastAPI service Vapi calls mid-conversation to run tools
-│   └── trigger_calls.py       outbound-calling script, kept for the production path (see PLAN.md)
+│   ├── customer_records.json      10 fictional customers used for the demo
+│   ├── assistant_config.json      the Vapi assistant definition (prompt, tools, voice)
+│   ├── app.py                     combined backend + webhook, used for the live deployment
+│   ├── mock_backend.py            backend service, for running locally as two processes
+│   ├── webhook_handler.py         webhook service, for running locally as two processes
+│   └── trigger_calls.py           outbound-calling script, kept for the production path (see PLAN.md)
 ├── tests/
-│   └── test_mock_backend.py   unit tests for every backend endpoint and edge case
-└── results/
-    ├── success_case.md        full transcript + logged outcome: retry succeeds
-    └── failure_case.md        full transcript + logged outcome: retry fails, SMS link sent
+│   └── test_mock_backend.py       unit tests for every backend endpoint and edge case
+├── results/
+│   ├── success_case.md            full transcript + logged outcome: retry succeeds
+│   └── failure_case.md            full transcript + logged outcome: retry fails, SMS link sent
+└── result-audio-recordings/
+    ├── success.wav                actual call audio for the success case
+    └── failure.wav                actual call audio for the failure/fallback case
 ```
 
 ---
@@ -129,33 +135,33 @@ uvicorn src.webhook_handler:app --port 8000
 ngrok http 8000
 ```
 
-## ☁️ Deploying it (Render)
+## ☁️ Live deployment
 
-ngrok tunnels die the moment your laptop sleeps or the process stops —
-fine for development, not something a reviewer can rely on later. For a
-URL that stays up on its own, `src/app.py` combines the backend and the
-webhook handler into a single FastAPI app (same logic as the two local
-services, just merged so Render only needs to run one process), and
-`render.yaml` deploys it as a Render Blueprint:
+ngrok tunnels die the moment a laptop sleeps or the process stops — fine for
+development, not something a reviewer can rely on later. `src/app.py`
+combines the backend and the webhook handler into a single FastAPI app (same
+logic as the two local services, just merged into one process) and is
+deployed live at:
 
-1. Push this repo to GitHub.
-2. [render.com](https://render.com) → **New → Blueprint** → connect the repo.
-   Render reads `render.yaml` and sets up the service automatically.
-3. Fill in the environment variables it asks for (`TWILIO_*`,
-   `VAPI_WEBHOOK_SECRET` — all optional, the service runs fine without them).
-4. Once deployed, copy the Render URL (`https://autopay-voice-agent.onrender.com`)
-   and paste it into the Vapi assistant/phone number's **Server URL** field as
-   `<render-url>/vapi/tool-call`, replacing the ngrok URL.
+**[`voice-agent-drab-seven.vercel.app`](https://voice-agent-drab-seven.vercel.app)**
 
-Render's free tier spins the service down after 15 minutes of inactivity and
-takes a few seconds to wake back up on the next request — fine for a demo
-that gets called occasionally, not a production SLA. See
-[PLAN.md](PLAN.md) for what a real always-on deployment would need instead.
+This is the URL wired into the Vapi assistant's **Server URL** field right
+now, so calling **+1 (415) 300-9362** hits this live deployment, not a local
+machine. No cold-start delay on Vapi's side — Vercel's serverless functions
+respond fast enough that the call flow doesn't feel any different from
+running locally.
 
-Then call the Vapi phone number shown in the dashboard — for this
-submission, that's **+1 (415) 300-9362**. When asked, give any 3-digit
-number from `src/customer_records.json` (001 through 010) to role-play
-that customer. Every call's final outcome is appended to `src/results.json`.
+To deploy your own copy to Vercel: connect this repo at
+[vercel.com](https://vercel.com), set the framework preset to **FastAPI**,
+and set `src/app.py`'s `app` object as the entrypoint. Add the same
+environment variables as `.env.example` under the project's Environment
+Variables settings.
+
+`render.yaml` is also included as an alternate deploy target (Render
+Blueprint) if you'd rather run this on Render instead — same `src/app.py`,
+just a different host. Render's free tier spins the service down after
+inactivity and takes a few seconds to wake back up on the next request,
+which is why Vercel is what's actually live for this submission.
 
 > **Why inbound, not outbound?** Vapi's free-trial phone numbers can receive
 > calls but can't place them — true outbound dialing needs an imported,
@@ -169,15 +175,50 @@ that customer. Every call's final outcome is appended to `src/results.json`.
 
 ---
 
+## 📞 Try it yourself
+
+1. **Call +1 (415) 300-9362.** It's live right now, hitting the Vercel
+   deployment above, not a machine that needs to be running on my end.
+2. The agent will disclose that it's an AI and that the call may be
+   recorded, then ask for a **3-digit customer number**.
+3. **Give it any number from 001 to 010** (e.g. "zero zero three" or just
+   "three") — these map to the 10 fictional customers in
+   `src/customer_records.json`. Full list of which ones succeed or fail on
+   retry, and why, is in [PLAN.md](PLAN.md).
+4. The agent looks the number up, confirms it found an account, and states
+   the (fictional) reason the last autopay payment failed.
+5. **Say "retry"** to have it attempt the payment again, or **say "send me
+   a link"** to have it text a payment-update link to the number you're
+   calling from (a real SMS, sent via Twilio).
+6. Say "no" / "that's all" / hang up to end the call. The outcome gets
+   logged to `src/results.json` either way.
+
+**What happens with a number outside 001–010?** Try it — say "999" or any
+other 3-digit number not in the records file. The agent calls
+`lookup_customer`, gets `found: false` back, and tells you it couldn't find
+an account with that number rather than inventing one. It'll ask you to try
+again once; if that also doesn't match a real record, it apologizes, logs
+the outcome as `wrong_contact`, and ends the call. This is deliberate — the
+agent never fabricates account details for an ID it can't verify, which is
+the same `lookup_customer` check that runs for every valid ID too, just
+returning `found: false` instead of the account details.
+
+---
+
 ## 🧪 Test cases
 
 Two real calls are included as evidence this works end to end, not just in
 isolated unit tests:
 
-| Case | Customer | Result | Details |
-|---|---|---|---|
-| ✅ **Success** | cust_003 (Meera Iyer) | `payment_recovered` | [results/success_case.md](results/success_case.md) — full transcript, retry succeeds first try |
-| ⚠️ **Failure → fallback** | cust_001 (Asha Rao) | `link_sent` | [results/failure_case.md](results/failure_case.md) — retry fails as designed, agent sends a real SMS link, delivery confirmed |
+| Case | Customer | Result | Transcript | Audio |
+|---|---|---|---|---|
+| ✅ **Success** | cust_003 (Meera Iyer) | `payment_recovered` | [results/success_case.md](results/success_case.md) | [recording](result-audio-recordings/success.wav) · [Drive link](https://drive.google.com/file/d/1ZMzRBA9ltGK9_fPQsoH5BiKUMqafJn9_/view?usp=sharing) |
+| ⚠️ **Failure → fallback** | cust_001 (Asha Rao) | `link_sent` | [results/failure_case.md](results/failure_case.md) | [recording](result-audio-recordings/failure.wav) · [Drive link](https://drive.google.com/file/d/1JlKlCUidK79c9FZKCFt5pnTABLJcP0Rt/view?usp=sharing) |
+
+Transcripts include the full back-and-forth plus every tool call's result.
+The `.wav` files are the actual call recordings pulled from Vapi's dashboard;
+the Drive links are there so you can stream them straight from the browser
+without downloading — same audio, whichever's more convenient.
 
 Both are backed by the raw logged outcomes in `src/results.json`.
 
